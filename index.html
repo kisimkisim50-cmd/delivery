@@ -78,8 +78,7 @@
 
   <div class="card">
     <h2>Kisim Kisim Delivery</h2>
-    <!-- The form targets a hidden iframe so the browser submits smoothly without CORS errors -->
-    <form id="otpForm" action="https://script.google.com/macros/s/AKfycbyb194qKk06d7W_m1FvXWvDQuEc9ttRMKv9m6eTknW6PwcPYiW1QcnR7z33_Q/exec" method="POST" target="hidden_iframe">
+    <form id="otpForm">
       <label for="billNo">Bill Number</label>
       <input type="number" id="billNo" name="billNo" inputmode="numeric" required placeholder="e.g. 740">
 
@@ -97,39 +96,55 @@
 
       <button type="submit" id="submitBtn">Verify & Mark Delivered</button>
     </form>
-    
-    <!-- Hidden iframe handles the form response quietly in the background -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="submitted()"></iframe>
-    
     <div id="msg"></div>
   </div>
 
   <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyb194qKk06d7W_m1FvXWvDQuEc9ttRMKv9m6eTknW6PwcPYiW1QcnR7z33_Q/exec";
     const form = document.getElementById("otpForm");
     const msg = document.getElementById("msg");
     const btn = document.getElementById("submitBtn");
-    let isSubmitting = false;
 
-    form.addEventListener("submit", function() {
-      isSubmitting = true;
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
       btn.disabled = true;
-      btn.innerText = "Processing...";
+      btn.innerText = "Checking...";
       msg.style.display = "none";
-    });
+      msg.innerText = "";
 
-    function submitted() {
-      if (!isSubmitting) return; // Ignores the initial page load load event
-      
-      msg.style.display = "block";
-      msg.style.color = "#137333";
-      msg.style.background = "#e6f4ea";
-      msg.innerText = "Successfully Verified & Marked Delivered!";
-      
-      form.reset();
-      btn.disabled = false;
-      btn.innerText = "Verify & Mark Delivered";
-      isSubmitting = false;
-    }
+      const params = new URLSearchParams({
+        action: "verify",
+        billNo: document.getElementById("billNo").value,
+        otp: document.getElementById("otp").value,
+        paymentMethod: document.getElementById("paymentMethod").value
+      });
+
+      fetch(SCRIPT_URL + "?" + params.toString())
+        .then(response => response.json())
+        .then(data => {
+          msg.style.display = "block";
+          if (data.result === "success") {
+            msg.style.color = "#137333";
+            msg.style.background = "#e6f4ea";
+            msg.innerText = data.message;
+            form.reset();
+          } else {
+            msg.style.color = "#c5221f";
+            msg.style.background = "#fce8e6";
+            msg.innerText = data.message;
+          }
+          btn.disabled = false;
+          btn.innerText = "Verify & Mark Delivered";
+        })
+        .catch(err => {
+          msg.style.display = "block";
+          msg.style.color = "#c5221f";
+          msg.style.background = "#fce8e6";
+          msg.innerText = "Error: " + err.message;
+          btn.disabled = false;
+          btn.innerText = "Verify & Mark Delivered";
+        });
+    });
   </script>
 
 </body>
