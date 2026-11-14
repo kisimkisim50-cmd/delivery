@@ -78,7 +78,7 @@
 
   <div class="card">
     <h2>Kisim Kisim Delivery</h2>
-    <form id="otpForm">
+    <form id="otpForm" action="https://script.google.com/macros/s/AKfycbyb194qKk06d7W_m1FvXWvDQuEc9ttRMKv9m6eTknW6PwcPYiW1QcnR7z33_Q/exec" method="POST" target="hidden_iframe">
       <label for="billNo">Bill Number</label>
       <input type="number" id="billNo" name="billNo" inputmode="numeric" required placeholder="e.g. 740">
 
@@ -96,54 +96,39 @@
 
       <button type="submit" id="submitBtn">Verify & Mark Delivered</button>
     </form>
+    
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
     <div id="msg"></div>
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyb194qKk06d7W_m1FvXWvDQuEc9ttRMKv9m6eTknW6PwcPYiW1QcnR7z33_Q/exec";
     const form = document.getElementById("otpForm");
     const msg = document.getElementById("msg");
     const btn = document.getElementById("submitBtn");
 
-    form.addEventListener("submit", function(e) {
-      e.preventDefault();
+    form.addEventListener("submit", function() {
       btn.disabled = true;
-      btn.innerText = "Checking...";
+      btn.innerText = "Verifying...";
       msg.style.display = "none";
-      msg.innerText = "";
+    });
 
-      const params = new URLSearchParams({
-        action: "verify",
-        billNo: document.getElementById("billNo").value,
-        otp: document.getElementById("otp").value,
-        paymentMethod: document.getElementById("paymentMethod").value
-      });
-
-      fetch(SCRIPT_URL + "?" + params.toString())
-        .then(response => response.json())
-        .then(data => {
-          msg.style.display = "block";
-          if (data.result === "success") {
-            msg.style.color = "#137333";
-            msg.style.background = "#e6f4ea";
-            msg.innerText = data.message;
-            form.reset();
-          } else {
-            msg.style.color = "#c5221f";
-            msg.style.background = "#fce8e6";
-            msg.innerText = data.message;
-          }
-          btn.disabled = false;
-          btn.innerText = "Verify & Mark Delivered";
-        })
-        .catch(err => {
-          msg.style.display = "block";
+    // Listen for the response sent back securely from Google Apps Script
+    window.addEventListener("message", function(event) {
+      if (event.data && event.data.result) {
+        msg.style.display = "block";
+        if (event.data.result === "success") {
+          msg.style.color = "#137333";
+          msg.style.background = "#e6f4ea";
+          msg.innerText = event.data.message;
+          form.reset();
+        } else {
           msg.style.color = "#c5221f";
           msg.style.background = "#fce8e6";
-          msg.innerText = "Error: " + err.message;
-          btn.disabled = false;
-          btn.innerText = "Verify & Mark Delivered";
-        });
+          msg.innerText = event.data.message;
+        }
+        btn.disabled = false;
+        btn.innerText = "Verify & Mark Delivered";
+      }
     });
   </script>
 
